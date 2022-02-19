@@ -36,7 +36,7 @@ def select_feat(train_data, valid_data, test_data, select_all=True):
         
     return raw_x_train[:,feat_idx], raw_x_valid[:,feat_idx], raw_x_test[:,feat_idx], y_train, y_valid
 
-def trainer(train_loader, valid_loader, model, config, device, report_every_n_epochs):
+def trainer(train_loader, valid_loader, model, config, device, report_every_n_epochs, save_model=False):
 
     criterion = nn.MSELoss(reduction='mean') # Define your loss function, do not modify this.
 
@@ -50,7 +50,7 @@ def trainer(train_loader, valid_loader, model, config, device, report_every_n_ep
     if not os.path.isdir('./models'):
         os.mkdir('./models') # Create directory of saving models.
 
-    n_epochs, best_val_loss, step, early_stop_count = config['n_epochs'], math.inf, 0, 0
+    n_epochs, best_val_loss, step, early_stop_count, best_epoch = config['n_epochs'], math.inf, 0, 0, 0
 
     for epoch in range(n_epochs):
         model.train() # Set your model to train mode.
@@ -86,10 +86,13 @@ def trainer(train_loader, valid_loader, model, config, device, report_every_n_ep
             print(f'Epoch [{epoch+1}/{n_epochs}]: Train loss: {mean_train_loss:.4f}, Valid loss: {mean_val_loss:.4f}')
 
         if mean_val_loss < best_val_loss:
+            train_loss_with_best_val_loss = mean_train_loss
             best_val_loss = mean_val_loss
-            torch.save(model.state_dict(), config['save_path']) # Save your best model
-            print('Saving model with loss {:.3f}...'.format(best_val_loss))
+            if save_model:
+                torch.save(model.state_dict(), config['save_path']) # Save your best model
+                print('Saving model with loss {:.3f}...'.format(best_val_loss))
             early_stop_count = 0
+            best_epoch = epoch
         else: 
             early_stop_count += 1
 
@@ -97,7 +100,7 @@ def trainer(train_loader, valid_loader, model, config, device, report_every_n_ep
             print('\nModel is not improving, so we halt the training session.')
             break
     
-    return best_val_loss, epoch
+    return train_loss_with_best_val_loss ,best_val_loss, best_epoch
 
 def predict(test_loader, model, device):
     model.eval() # Set your model to evaluation mode.
