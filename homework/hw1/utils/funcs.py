@@ -24,19 +24,19 @@ def train_valid_split(data_set, valid_ratio, seed):
     train_set, valid_set = random_split(data_set, [train_set_size, valid_set_size], generator=torch.Generator().manual_seed(seed))
     return np.array(train_set), np.array(valid_set)
 
-def select_feat(train_data, valid_data, test_data, feats=None, select_all=True):
+def select_feat(train_data, valid_data, test_data, feats=None):
     '''Selects useful features to perform regression'''
     y_train, y_valid = train_data[:,-1], valid_data[:,-1]
     raw_x_train, raw_x_valid, raw_x_test = train_data[:,:-1], valid_data[:,:-1], test_data
 
-    if select_all:
+    if not feats:
         feat_idx = list(range(raw_x_train.shape[1]))
     else:
         feat_idx = feats # TODO: Select suitable feature columns.
         
     return raw_x_train[:,feat_idx], raw_x_valid[:,feat_idx], raw_x_test[:,feat_idx], y_train, y_valid
 
-def trainer(train_loader, valid_loader, model, optimizer, config, device, report_every_n_epochs, save_model=False):
+def trainer(train_loader, valid_loader, model, optimizer, config, device, report_every_n_epochs, save_model, model_name):
 
     criterion = nn.MSELoss(reduction='mean') # Define your loss function, do not modify this.
 
@@ -47,8 +47,9 @@ def trainer(train_loader, valid_loader, model, optimizer, config, device, report
 
     writer = SummaryWriter() # Writer of tensoboard.
 
-    if not os.path.isdir('./models'):
-        os.mkdir('./models') # Create directory of saving models.
+    save_path = f'./models/{model_name}'
+    if not os.path.isdir(save_path):
+        os.mkdir(save_path) # Create directory of saving models.
 
     n_epochs, best_val_loss, step, early_stop_count, best_epoch = config['n_epochs'], math.inf, 0, 0, 0
 
@@ -89,7 +90,7 @@ def trainer(train_loader, valid_loader, model, optimizer, config, device, report
             train_loss_with_best_val_loss = mean_train_loss
             best_val_loss = mean_val_loss
             if save_model:
-                torch.save(model.state_dict(), config['save_path']) # Save your best model
+                torch.save(model.state_dict(), f"{save_path}/model.pth") # Save your best model
                 print('Saving model with loss {:.3f}...'.format(best_val_loss))
             early_stop_count = 0
             best_epoch = epoch
@@ -100,7 +101,7 @@ def trainer(train_loader, valid_loader, model, optimizer, config, device, report
             print('\nModel is not improving, so we halt the training session.')
             break
     
-    return train_loss_with_best_val_loss, best_val_loss, best_epoch
+    return mean_train_loss, mean_val_loss, best_epoch # train_loss_with_best_val_loss, best_val_loss, best_epoch
 
 def predict(test_loader, model, device):
     model.eval() # Set your model to evaluation mode.

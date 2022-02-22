@@ -5,12 +5,16 @@ class DeepNN(nn.Module):
         super(DeepNN, self).__init__()
         self.layers = nn.Sequential(
             nn.Linear(input_dim, 64),
+            nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(64, 64),
+            nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(64, 64),
+            nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(64, 64),
+            nn.Dropout(0.5),
             nn.ReLU(),
             nn.Linear(64, 1)
         )
@@ -32,6 +36,25 @@ class SimpleNN(nn.Module):
     def forward(self, x):
         x = self.layers(x)
         x = x.squeeze(1)
+        return x
+
+class SampleNNDropout(nn.Module):
+    def __init__(self, input_dim):
+        super(SampleNNDropout, self).__init__()
+        # TODO: modify model's structure, be aware of dimensions. 
+        self.layers = nn.Sequential(
+            nn.Linear(input_dim, 16),
+            nn.Dropout(0.1),
+            nn.ReLU(),
+            nn.Linear(16, 8),
+            nn.Dropout(0.1),
+            nn.ReLU(),
+            nn.Linear(8, 1)
+        )
+
+    def forward(self, x):
+        x = self.layers(x)
+        x = x.squeeze(1) # (B, 1) -> (B)
         return x
 
 class SampleNN(nn.Module):
