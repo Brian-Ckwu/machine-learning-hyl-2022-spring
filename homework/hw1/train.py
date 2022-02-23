@@ -65,7 +65,6 @@ criterion = nn.MSELoss(reduction="mean")
 """
     Optimization
 """
-val_dataloader = None # if need to train on full dataset
 min_val_loss, loss_record = new_trainer(train_dataloader, val_dataloader, model, criterion, config, DEVICE)
 
 # save model configuration & loss record to the model folder
