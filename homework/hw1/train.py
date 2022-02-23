@@ -67,14 +67,16 @@ criterion = nn.MSELoss(reduction="mean")
 """
 min_val_loss, loss_record = new_trainer(train_dataloader, val_dataloader, model, criterion, config, DEVICE)
 
-# save model configuration to the model folder
-save_path = f"./models/{config['model_name']}/"
-with open(save_path + "config.json", mode="wt") as f:
+# save model configuration & loss record to the model folder
+model_save_path = f"./models/{config['model_name']}/"
+with open(model_save_path + "config.json", mode="wt") as f:
     json.dump(config, f)
+with open(model_save_path + "loss_record.json", mode="wt") as f:
+    json.dump(loss_record, f)
 
 # load the saved model and make predictions on the test set
 model_pred = getattr(models, config["model"])(input_dim=train_x.shape[1]).to(DEVICE)
-model_pred.load_state_dict(torch.load(save_path + "model.pth"))
+model_pred.load_state_dict(torch.load(model_save_path + "model.pth"))
 preds = predict(test_dataloader, model_pred, DEVICE)
 save_pred(preds, f"./preds/{config['model_name']}.csv")
 
