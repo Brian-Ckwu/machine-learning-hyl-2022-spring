@@ -11,6 +11,7 @@
     	"weight_decay": 0.00
     },
     "early_stop": 400,
+    "normalize_feats": false,
     "model": "SampleNN",
-    "model_name": "SampleNN_SGD_rmid_normalize-feats_lr3e5"
+    "model_name": "SampleNN_SGD_rmid_lr3e5"
 }

@@ -43,9 +43,9 @@ print(f"Train_x shape: {train_x.shape}\n \
         Test_x  shape: {test_x.shape}") # check shape
 
 # make dataset & dataloader
-train_dataset, val_dataset, test_dataset = COVID19Dataset(train_x, train_y), \
-                                           COVID19Dataset(val_x, val_y), \
-                                           COVID19Dataset(test_x)
+train_dataset, val_dataset, test_dataset = COVID19Dataset(train_x, train_y, normalize_feats=config["normalize_feats"]), \
+                                           COVID19Dataset(val_x, val_y, normalize_feats=config["normalize_feats"]), \
+                                           COVID19Dataset(test_x, normalize_feats=config["normalize_feats"])
 train_dataloader, val_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, pin_memory=True), \
                                                     DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=True, pin_memory=True), \
                                                     DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False, pin_memory=True)
