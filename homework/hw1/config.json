@@ -1,6 +1,8 @@
 {
     "seed": 7,
-    "feats": [39, 40, 52, 55, 56, 68, 71, 72, 84, 87, 88, 100, 101, 102, 103, 104],
+    "feats": [37,  38,  39,  40,  49,  52,  53,  54,  55,  56,  65,  68,  69,
+        70,  71,  72,  75,  81,  84,  85,  86,  87,  88,  91,  97, 100,
+       101, 102, 103, 104, 107, 113],
     "valid_ratio": 0.20,   
     "n_epochs": 5000,     
     "batch_size": 256,
@@ -13,5 +15,5 @@
     "early_stop": 400,
     "normalize_feats": false,
     "model": "ComplexNN",
-    "model_name": "ComplexNN_SGD_16feats_lr1e-5"
+    "model_name": "ComplexNN_SGD_32feats_lr1e-5"
 }
