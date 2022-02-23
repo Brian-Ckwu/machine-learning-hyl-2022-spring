@@ -1,0 +1,1 @@
+{"seed": 7, "feats": [], "valid_ratio": 0.2, "n_epochs": 3000, "batch_size": 256, "optimizer": "SGD", "optimizer_hparams": {"lr": 1e-05, "weight_decay": 0.0, "momentum": 0.9}, "early_stop": 400, "normalize_feats": false, "model": "SampleNN", "model_name": "SampleNN_SGD_rmid_lr1e-5"}

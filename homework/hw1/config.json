@@ -4,13 +4,14 @@
     "valid_ratio": 0.20,   
     "n_epochs": 3000,     
     "batch_size": 256,
-    "optimizer": "Adam",
+    "optimizer": "SGD",
     "optimizer_hparams": {
-    	"lr": 1e-3,
-    	"weight_decay": 0.00
+    	"lr": 1e-5,
+    	"weight_decay": 0.00,
+	"momentum": 0.9
     },
     "early_stop": 400,
     "normalize_feats": false,
     "model": "SampleNN",
-    "model_name": "SampleNN_Adam_rmid_lr1e-3"
+    "model_name": "SampleNN_SGD_rmid_lr1e-5"
 }
