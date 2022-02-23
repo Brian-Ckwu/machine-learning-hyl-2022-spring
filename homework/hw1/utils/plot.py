@@ -5,7 +5,7 @@ def plot_learning_curve(loss_record, title="Learning Curve", xlabel="Training st
     # set x-axis
     total_steps = len(loss_record["train"])
     x_train = range(total_steps)
-    val_step_width = total_steps // len(loss_record["val"]
+    val_step_width = total_steps // len(loss_record["val"])
     x_val = x_train[::val_step_width]
     
     # set figure

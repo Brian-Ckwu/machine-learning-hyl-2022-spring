@@ -1,12 +1,16 @@
 {
-    "seed": 7,     
-    "n_splits": 5,
+    "seed": 7,
     "feats": [],
     "valid_ratio": 0.20,   
     "n_epochs": 3000,     
     "batch_size": 256,
-    "learning_rate": 1e-5,
-    "momentum": 0.90,
-    "weight_decay": 0.00,              
-    "early_stop": 400    
+    "optimizer": "SGD",
+    "optimizer_hparams": {
+    	"lr": 1e-5,
+    	"momentum": 0.90,
+    	"weight_decay": 0.00
+    },
+    "early_stop": 400,
+    "model": "SampleNN",
+    "model_name": "SampleNN_SGD_rmid_new-trainer"
 }

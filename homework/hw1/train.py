@@ -1,6 +1,7 @@
 """
     import packages
 """
+import os
 import json
 import pandas as pd
 
@@ -11,8 +12,9 @@ from torch.utils.data import DataLoader
 
 # import utilities
 from utils.data import COVID19Dataset
-from utils.model import *
+from utils import models
 from utils.funcs import *
+from utils.plot import plot_learning_curve
 
 """
     Configuration
@@ -21,7 +23,10 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 config_file = "./config.json"
 with open(config_file) as f:
     config = json.load(f)
-MODEL = SampleNN
+# config['feats'] = list(range(37, 116))
+
+# seeding to achieve reproducable results
+same_seed(config["seed"])
 
 """
     Data
@@ -48,16 +53,31 @@ train_dataloader, val_dataloader, test_dataloader = DataLoader(train_dataset, ba
 """
     Model
 """
-model = MODEL(input_dim=train_x.shape[1]).to(DEVICE)
-optimizer = torch.optim.SGD(model.parameters(), lr=config['learning_rate'], momentum=config['momentum'], weight_decay=config['weight_decay'])
+model = getattr(models, config["model"])(input_dim=train_x.shape[1]).to(DEVICE)
+if not os.path.isdir("./models/" + config["model_name"]):
+    os.mkdir("./models/" + config["model_name"])
+
+"""
+    Loss
+"""
+criterion = nn.MSELoss(reduction="mean")
 
 """
     Optimization
 """
-model_name = f"{MODEL.__name__}"
-final_train_loss, final_val_loss, best_epoch = trainer(train_dataloader, val_dataloader, model, optimizer, config, DEVICE, report_every_n_epochs=100, save_model=True, model_name=model_name)
+min_val_loss, loss_record = new_trainer(train_dataloader, val_dataloader, model, criterion, config, DEVICE)
 
 # save model configuration to the model folder
-save_path = f"./models/{model_name}/config.json"
-with open(save_path, mode="wt") as f:
+save_path = f"./models/{config['model_name']}/"
+with open(save_path + "config.json", mode="wt") as f:
     json.dump(config, f)
+
+# load the saved model and make predictions on the test set
+model_pred = getattr(models, config["model"])(input_dim=train_x.shape[1]).to(DEVICE)
+model_pred.load_state_dict(torch.load(save_path + "model.pth"))
+preds = predict(test_dataloader, model_pred, DEVICE)
+save_pred(preds, f"./preds/{config['model_name']}.csv")
+
+# plot training curve
+plot_learning_curve(loss_record, title="Learning Curve", xlabel="Training Steps", ylabel="MSE Loss")
+

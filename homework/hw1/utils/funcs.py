@@ -36,6 +36,65 @@ def select_feat(train_data, valid_data, test_data, feats=None):
         
     return raw_x_train[:,feat_idx], raw_x_valid[:,feat_idx], raw_x_test[:,feat_idx], y_train, y_valid
 
+def new_trainer(train_loader, val_loader, model, criterion, config, device):
+    # Setup optimizer
+    optimizer = getattr(torch.optim, config["optimizer"])(model.parameters(), **config["optimizer_hparams"])
+    
+    # Setup variables
+    min_loss = math.inf
+    loss_record = {"train": list(), "val": list()}
+    epochs_since_last_improve = 0
+
+    # Start training
+    for epoch in range(config["n_epochs"]):
+        # Go through one epoch
+        model.train()
+        for x, y in train_loader:
+            x, y = x.to(device), y.to(device)
+            # Inference and calculate loss
+            pred = model(x)
+            loss = criterion(pred, y)
+
+            # Back-propagation
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # Document loss
+            loss_record["train"].append(loss.detach().cpu().item())
+
+        # Test the model's performance on the validation set after each epoch
+        val_loss = calc_val_loss(val_loader, model, criterion, device)
+        loss_record["val"].append(val_loss)
+        if val_loss < min_loss:
+            min_loss = val_loss
+            epochs_since_last_improve = 0
+            # save model
+            torch.save(model.state_dict(), "./models/" + config["model_name"] + "/model.pth")
+            print(f"Best model saved (epoch = {epoch + 1:4d}, loss = {min_loss:.4f})")
+        elif epochs_since_last_improve > config["early_stop"]:
+            print(f"Model stop improving after {epoch + 1} epochs.")
+            break
+        else:
+            epochs_since_last_improve += 1
+
+    print(f"\nFinished training after {epoch} epochs.")
+    return min_loss, loss_record
+
+def calc_val_loss(val_loader, model, criterion, device):
+    total_loss = 0
+    model.eval()
+    for x, y in val_loader:
+        x, y = x.to(device), y.to(device)
+        with torch.no_grad():
+            pred = model(x)
+            loss = criterion(pred, y)
+        total_loss += loss.detach().cpu().item() * len(x)
+
+    mean_loss = total_loss / len(val_loader.dataset)
+    return mean_loss
+
+
 def trainer(train_loader, valid_loader, model, optimizer, config, device, report_every_n_epochs, save_model, model_name):
 
     criterion = nn.MSELoss(reduction='mean') # Define your loss function, do not modify this.
@@ -101,7 +160,7 @@ def trainer(train_loader, valid_loader, model, optimizer, config, device, report
             print('\nModel is not improving, so we halt the training session.')
             break
     
-    return mean_train_loss, mean_val_loss, best_epoch # train_loss_with_best_val_loss, best_val_loss, best_epoch
+    return train_loss_with_best_val_loss, best_val_loss, best_epoch
 
 def predict(test_loader, model, device):
     model.eval() # Set your model to evaluation mode.
