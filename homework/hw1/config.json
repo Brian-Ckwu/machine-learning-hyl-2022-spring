@@ -8,11 +8,12 @@
     "batch_size": 256,
     "optimizer": "SGD",
     "optimizer_hparams": {
-    	"lr": 1e-5,
-    	"weight_decay": 0.00
+    	"lr": 5e-5,
+    	"weight_decay": 0.00,
+	"momentum": 0.90
     },
     "early_stop": 300,
     "normalize_feats": false,
     "model": "ComplexNN",
-    "model_name": "ComplexNN_SGD_states_32feats_lr1e-5"
+    "model_name": "ComplexNN_SGD_states_32feats_lr5e-5"
 }
