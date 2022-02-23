@@ -6,11 +6,11 @@
     "batch_size": 256,
     "optimizer": "SGD",
     "optimizer_hparams": {
-    	"lr": 1e-5,
+    	"lr": 3e-5,
     	"momentum": 0.90,
     	"weight_decay": 0.00
     },
     "early_stop": 400,
     "model": "SampleNN",
-    "model_name": "SampleNN_SGD_rmid_normalize-feats"
+    "model_name": "SampleNN_SGD_rmid_normalize-feats_lr3e5"
 }
