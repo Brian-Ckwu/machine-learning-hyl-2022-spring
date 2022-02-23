@@ -36,7 +36,7 @@ train_data = pd.read_csv('./data/covid_train.csv', index_col='id').values
 test_data = pd.read_csv('./data/covid_test.csv', index_col='id').values
 
 # preprocessing
-train_data, val_data =  train_valid_split(train_data, config['valid_ratio'], config['seed'])
+train_data, val_data = train_valid_split(train_data, config['valid_ratio'], config['seed'])
 train_x, val_x, test_x, train_y, val_y = select_feat(train_data, val_data, test_data, feats=config['feats'])
 print(f"Train_x shape: {train_x.shape}\n \
         Val_x   shape: {val_x.shape}\n   \
@@ -65,6 +65,7 @@ criterion = nn.MSELoss(reduction="mean")
 """
     Optimization
 """
+val_dataloader = None # if need to train on full dataset
 min_val_loss, loss_record = new_trainer(train_dataloader, val_dataloader, model, criterion, config, DEVICE)
 
 # save model configuration & loss record to the model folder

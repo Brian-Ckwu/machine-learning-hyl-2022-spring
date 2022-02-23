@@ -80,9 +80,13 @@ def new_trainer(train_loader, val_loader, model, criterion, config, device):
                 epochs_since_last_improve += 1
         else:
             mean_train_loss = calc_val_loss(train_loader, model, criterion, device)
+            if mean_train_loss < min_loss:
+                min_loss = mean_train_loss
+                print(f"Best model saved (epoch = {epoch + 1:4d}; Mean train loss = {mean_train_loss:.4f}")
+                torch.save(model.state_dict(), "./models/" + config["model_name"] + "/model.pth")
             loss_record["val"].append(mean_train_loss)
 
-    print(f"\nFinished training after {epoch + 1} epochs.")
+    print(f"\nFinished training after {epoch + 1} epochs. Loss: {min_loss}")
     return min_loss, loss_record
 
 def calc_val_loss(val_loader, model, criterion, device):
