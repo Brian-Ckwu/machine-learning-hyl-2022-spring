@@ -1,0 +1,1 @@
+{"seed": 7, "feats": [], "valid_ratio": 0.2, "n_epochs": 3000, "batch_size": 256, "optimizer": "Adam", "optimizer_hparams": {"lr": 0.001, "weight_decay": 0.0}, "early_stop": 400, "normalize_feats": false, "model": "SampleNN", "model_name": "SampleNN_Adam_rmid_lr1e-3"}
