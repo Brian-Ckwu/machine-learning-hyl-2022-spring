@@ -63,20 +63,24 @@ def new_trainer(train_loader, val_loader, model, criterion, config, device):
             # Document loss
             loss_record["train"].append(loss.detach().cpu().item())
 
-        # Test the model's performance on the validation set after each epoch
-        val_loss = calc_val_loss(val_loader, model, criterion, device)
-        loss_record["val"].append(val_loss)
-        if val_loss < min_loss:
-            min_loss = val_loss
-            epochs_since_last_improve = 0
-            # save model
-            torch.save(model.state_dict(), "./models/" + config["model_name"] + "/model.pth")
-            print(f"Best model saved (epoch = {epoch + 1:4d}, loss = {min_loss:.4f})")
-        elif epochs_since_last_improve > config["early_stop"]:
-            print(f"Model stop improving after {epoch + 1} epochs.")
-            break
+        if val_loader:
+            # Test the model's performance on the validation set after each epoch
+            val_loss = calc_val_loss(val_loader, model, criterion, device)
+            loss_record["val"].append(val_loss)
+            if val_loss < min_loss:
+                min_loss = val_loss
+                epochs_since_last_improve = 0
+                # save model
+                torch.save(model.state_dict(), "./models/" + config["model_name"] + "/model.pth")
+                print(f"Best model saved (epoch = {epoch + 1:4d}, loss = {min_loss:.4f})")
+            elif epochs_since_last_improve > config["early_stop"]:
+                print(f"Model stop improving after {epoch + 1} epochs.")
+                break
+            else:
+                epochs_since_last_improve += 1
         else:
-            epochs_since_last_improve += 1
+            mean_train_loss = calc_val_loss(train_loader, model, criterion, device)
+            loss_record["val"].append(mean_train_loss)
 
     print(f"\nFinished training after {epoch + 1} epochs.")
     return min_loss, loss_record
