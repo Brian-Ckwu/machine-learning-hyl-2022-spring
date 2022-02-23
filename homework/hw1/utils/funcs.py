@@ -78,7 +78,7 @@ def new_trainer(train_loader, val_loader, model, criterion, config, device):
         else:
             epochs_since_last_improve += 1
 
-    print(f"\nFinished training after {epoch} epochs.")
+    print(f"\nFinished training after {epoch + 1} epochs.")
     return min_loss, loss_record
 
 def calc_val_loss(val_loader, model, criterion, device):

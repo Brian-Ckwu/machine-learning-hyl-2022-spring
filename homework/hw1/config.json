@@ -12,5 +12,5 @@
     },
     "early_stop": 400,
     "model": "SampleNN",
-    "model_name": "SampleNN_SGD_rmid_new-trainer"
+    "model_name": "SampleNN_SGD_rmid_normalize-feats"
 }
