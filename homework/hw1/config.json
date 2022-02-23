@@ -4,7 +4,7 @@
         70,  71,  72,  75,  81,  84,  85,  86,  87,  88,  91,  97, 100,
        101, 102, 103, 104, 107, 113],
     "valid_ratio": 0.20,   
-    "n_epochs": 5000,     
+    "n_epochs": 10000,     
     "batch_size": 256,
     "optimizer": "SGD",
     "optimizer_hparams": {
