@@ -14,6 +14,6 @@
     },
     "early_stop": 400,
     "normalize_feats": false,
-    "model": "ComplexNN",
-    "model_name": "ComplexNN_SGD_64feats_lr1e-5"
+    "model": "SampleNN",
+    "model_name": "SampleNN_SGD_states_32feats_lr1e-5"
 }
