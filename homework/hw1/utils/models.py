@@ -79,9 +79,11 @@ class ComplexNN(nn.Module):
         super(ComplexNN, self).__init__()
         # TODO: modify model's structure, be aware of dimensions. 
         self.layers = nn.Sequential(
-            nn.Linear(input_dim, 32),
+            nn.Linear(input_dim, 16),
             nn.ReLU(),
-            nn.Linear(32, 16),
+            nn.Linear(16, 16),
+            nn.ReLU(),
+            nn.Linear(16, 16),
             nn.ReLU(),
             nn.Linear(16, 8),
             nn.ReLU(),

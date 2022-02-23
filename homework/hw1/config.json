@@ -2,7 +2,7 @@
     "seed": 7,
     "feats": [39, 40, 52, 55, 56, 68, 71, 72, 84, 87, 88, 100, 101, 102, 103, 104],
     "valid_ratio": 0.20,   
-    "n_epochs": 3000,     
+    "n_epochs": 5000,     
     "batch_size": 256,
     "optimizer": "SGD",
     "optimizer_hparams": {
@@ -12,6 +12,6 @@
     },
     "early_stop": 400,
     "normalize_feats": false,
-    "model": "SampleNN",
-    "model_name": "SampleNN_SGD_16feats_lr1e-5"
+    "model": "ComplexNN",
+    "model_name": "ComplexNN_SGD_16feats_lr1e-5"
 }
