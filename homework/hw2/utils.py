@@ -2,6 +2,17 @@ import os
 import random
 import torch
 from tqdm import tqdm
+import numpy as np
+
+#fix seed
+def same_seeds(seed):
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)  
+    np.random.seed(seed)  
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 def load_feat(path):
     feat = torch.load(path)
@@ -40,11 +51,11 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
 
     label_dict = {}
     if mode != 'test':
-      phone_file = open(os.path.join(phone_path, f'{mode}_labels.txt')).readlines()
+        phone_file = open(os.path.join(phone_path, f'{mode}_labels.txt')).readlines()
 
-      for line in phone_file:
-          line = line.strip('\n').split(' ')
-          label_dict[line[0]] = [int(p) for p in line[1:]]
+        for line in phone_file:
+            line = line.strip('\n').split(' ')
+            label_dict[line[0]] = [int(p) for p in line[1:]]
 
     if split == 'train' or split == 'val':
         # split training and validation data
@@ -92,6 +103,92 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
     else:
       return X
 
+def trainer(train_loader, val_loader, model, criterion, optimizer, config, device):
+    best_acc = 0.0
+    for epoch in range(config["num_epoch"]):
+        train_acc = 0.0
+        train_loss = 0.0
+        val_acc = 0.0
+        val_loss = 0.0
+        
+        # training
+        model.train() # set the model to training mode
+        for i, batch in enumerate(tqdm(train_loader)):
+            # handle x, y
+            features, labels = batch
+            features = features.to(device)
+            labels = labels.to(device)
+            
+            # forward pass
+            outputs = model(features) 
+            loss = criterion(outputs, labels)
+            
+            # backward pass
+            optimizer.zero_grad() 
+            loss.backward() 
+            optimizer.step() 
+            
+            _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
+            train_acc += (train_pred.detach() == labels.detach()).sum().item()
+            train_loss += loss.item()
+        
+        # validation
+        if val_loader:
+            model.eval() # set the model to evaluation mode
+            with torch.no_grad():
+                for _, batch in enumerate(tqdm(val_loader)):
+                    features, labels = batch
+                    features = features.to(device)
+                    labels = labels.to(device)
+                    outputs = model(features)
+                    
+                    loss = criterion(outputs, labels) 
+                    
+                    _, val_pred = torch.max(outputs, 1) 
+                    val_acc += (val_pred.cpu() == labels.cpu()).sum().item() # get the index of the class with the highest probability
+                    val_loss += loss.item()
+
+                print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f} | Val Acc: {:3.6f} loss: {:3.6f}'.format(
+                    epoch + 1, config["num_epoch"], train_acc/len(train_loader.dataset), train_loss/len(train_loader), val_acc/len(val_loader.dataset), val_loss/len(val_loader)
+                ))
+
+                # if the model improves, save a checkpoint at this epoch
+                if val_acc > best_acc:
+                    best_acc = val_acc
+                    torch.save(model.state_dict(), config["model_path"])
+                    print('saving model with acc {:.3f}'.format(best_acc/len(val_loader.dataset)))
+        else:
+            print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f}'.format(
+                epoch + 1, config["num_epoch"], train_acc/len(train_loader.dataset), train_loss/len(train_loader)
+            ))
+
+    # if not validating, save the last epoch
+    if not val_loader:
+        torch.save(model.state_dict(), config["model_path"])
+        print('saving model at last epoch')
+
+def tester(test_loader, model, device):
+    pred = np.array([], dtype=np.int32)
+
+    model.eval()
+    with torch.no_grad():
+        for _, batch in enumerate(tqdm(test_loader)):
+            features = batch
+            features = features.to(device)
+
+            outputs = model(features)
+
+            _, test_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
+            pred = np.concatenate((pred, test_pred.cpu().numpy()), axis=0)
+    
+    return pred
+
+def save_pred(pred, file_path):
+    with open(file_path, 'w') as f:
+        f.write('Id,Class\n')
+        for i, y in enumerate(pred):
+            f.write('{},{}\n'.format(i, y))
+
 """
-    From TA's Sample Code
+    Adapted From TA's Sample Code
 """
