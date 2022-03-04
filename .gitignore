@@ -2,4 +2,7 @@
 *.ipynb
 *.csv
 *.pth
+*.json
+*.zip
+libriphone
 runs

@@ -14,5 +14,5 @@
     "early_stop": 400,
     "normalize_feats": false,
     "model": "SampleNN",
-    "model_name": "SampleNN_Adam_states_32feats_lr1e-3_wd_005"
+    "model_name": "SampleNN_Adam_states_32feats_lr1e-3_wd_005_upload"
 }
