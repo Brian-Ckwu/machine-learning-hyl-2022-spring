@@ -113,7 +113,7 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
         
         # training
         model.train() # set the model to training mode
-        for i, batch in enumerate(tqdm(train_loader)):
+        for _, batch in enumerate(tqdm(train_loader)):
             # handle x, y
             features, labels = batch
             features = features.to(device)
@@ -155,7 +155,7 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
                 # if the model improves, save a checkpoint at this epoch
                 if val_acc > best_acc:
                     best_acc = val_acc
-                    torch.save(model.state_dict(), config["model_path"])
+                    torch.save(model.state_dict(), "./models/{}.pth".format(config["model_name"]))
                     print('saving model with acc {:.3f}'.format(best_acc/len(val_loader.dataset)))
         else:
             print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f}'.format(
@@ -164,8 +164,10 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
 
     # if not validating, save the last epoch
     if not val_loader:
-        torch.save(model.state_dict(), config["model_path"])
+        torch.save(model.state_dict(), "./models/{}.pth".format(config["model_name"]))
         print('saving model at last epoch')
+    
+    return best_acc / len(val_loader.dataset)
 
 def tester(test_loader, model, device):
     pred = np.array([], dtype=np.int32)
@@ -183,7 +185,13 @@ def tester(test_loader, model, device):
     
     return pred
 
-def save_pred(pred, file_path):
+def save_performance(perf, model_name):
+    file_path = "./evaluations/{}.txt".format(model_name)
+    with open(file_path, mode="wt") as f:
+        f.write(str(perf))
+
+def save_pred(pred, model_name):
+    file_path = "./preds/{}.csv".format(model_name)
     with open(file_path, 'w') as f:
         f.write('Id,Class\n')
         for i, y in enumerate(pred):

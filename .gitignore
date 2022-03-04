@@ -4,5 +4,6 @@
 *.pth
 *.json
 *.zip
+*.txt
 libriphone
 runs
