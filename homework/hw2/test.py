@@ -36,7 +36,7 @@ test_set = LibriDataset(test_X, None)
 test_loader = DataLoader(test_set, batch_size=config["batch_size"], shuffle=False)
 
 # Load model
-model = Classifier(input_dim=config["feature_dim"]*config["concat_nframes"], hidden_layers=config["hidden_layers"], hidden_dim=config["hidden_dim"]).to(device)
+model = Classifier(input_dim=config["feature_dim"]*config["concat_nframes"], hidden_layers=config["hidden_layers"], hidden_dim=config["hidden_dim"], dropout_p=config["dropout_p"]).to(device)
 model.load_state_dict(torch.load("./models/{}.pth".format(config["model_name"])))
 
 # Evaluate
