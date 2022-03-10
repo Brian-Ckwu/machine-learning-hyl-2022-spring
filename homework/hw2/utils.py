@@ -167,7 +167,7 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
         torch.save(model.state_dict(), "./models/{}.pth".format(config["model_name"]))
         print('saving model at last epoch')
     
-    return best_acc / len(val_loader.dataset)
+    return best_acc / len(val_loader.dataset) if val_loader else train_acc / len(train_loader.dataset)
 
 def tester(test_loader, model, device):
     pred = np.array([], dtype=np.int32)
