@@ -105,11 +105,16 @@ def preprocess_data(split, feat_dir, phone_path, concat_nframes, train_ratio=0.8
 
 def trainer(train_loader, val_loader, model, criterion, optimizer, config, device):
     best_acc = 0.0
+    early_stop_epochs = config["early_stop_epochs"]
+    last_improve_epochs = 0
     for epoch in range(config["num_epoch"]):
         train_acc = 0.0
         train_loss = 0.0
         val_acc = 0.0
         val_loss = 0.0
+
+        train_item = 0
+        val_item = 0
         
         # training
         model.train() # set the model to training mode
@@ -120,17 +125,24 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
             labels = labels.to(device)
             
             # forward pass
-            outputs = model(features) 
-            loss = criterion(outputs, labels)
+            outputs = model(features)
+            if criterion == "crf":
+                loss = -model.calc_crf_prob(outputs, labels)
+            else:
+                loss = criterion(outputs, labels)
             
             # backward pass
             optimizer.zero_grad() 
             loss.backward() 
             optimizer.step() 
             
-            _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
-            train_acc += (train_pred.detach() == labels.detach()).sum().item()
-            train_loss += loss.item()
+            if criterion == "crf":
+                train_pred = model.crf_decode(outputs)
+            else:
+                _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
+            train_acc += (train_pred.cpu().detach() == labels.cpu().detach()).sum().item()
+            train_item += len(labels)
+            train_loss += loss.cpu().detach().item()
         
         # validation
         if val_loader:
@@ -142,24 +154,40 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
                     labels = labels.to(device)
                     outputs = model(features)
                     
-                    loss = criterion(outputs, labels) 
+                    if criterion == "crf":
+                        loss = -model.calc_crf_prob(outputs, labels)
+                    else:
+                        loss = criterion(outputs, labels)
                     
-                    _, val_pred = torch.max(outputs, 1) 
-                    val_acc += (val_pred.cpu() == labels.cpu()).sum().item() # get the index of the class with the highest probability
-                    val_loss += loss.item()
+                    if criterion == "crf":
+                        val_pred = model.crf_decode(outputs)
+                    else:
+                        _, val_pred = torch.max(outputs, 1) 
+                    
+                    val_acc += (val_pred.cpu() == labels.cpu()).detach().sum().item() # get the index of the class with the highest probability
+                    val_item += len(labels)
+                    val_loss += loss.cpu().detach().item()
 
                 print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f} | Val Acc: {:3.6f} loss: {:3.6f}'.format(
-                    epoch + 1, config["num_epoch"], train_acc/len(train_loader.dataset), train_loss/len(train_loader), val_acc/len(val_loader.dataset), val_loss/len(val_loader)
+                    epoch + 1, config["num_epoch"], train_acc / train_item, train_loss / len(train_loader), val_acc / val_item, val_loss / len(val_loader)
                 ))
 
                 # if the model improves, save a checkpoint at this epoch
                 if val_acc > best_acc:
                     best_acc = val_acc
                     torch.save(model.state_dict(), "./models/{}.pth".format(config["model_name"]))
-                    print('saving model with acc {:.3f}'.format(best_acc/len(val_loader.dataset)))
+                    print('saving model with acc {:.3f}'.format(best_acc / val_item))
+                    last_improve_epochs = 0
+                else:
+                    last_improve_epochs += 1
+                    print(f"{last_improve_epochs} epochs since last improvement...")
+                    if last_improve_epochs > early_stop_epochs:
+                        break
+        
+        
         else:
             print('[{:03d}/{:03d}] Train Acc: {:3.6f} Loss: {:3.6f}'.format(
-                epoch + 1, config["num_epoch"], train_acc/len(train_loader.dataset), train_loss/len(train_loader)
+                epoch + 1, config["num_epoch"], train_acc / train_item, train_loss / len(train_loader)
             ))
 
     # if not validating, save the last epoch
@@ -167,7 +195,7 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
         torch.save(model.state_dict(), "./models/{}.pth".format(config["model_name"]))
         print('saving model at last epoch')
     
-    return best_acc / len(val_loader.dataset) if val_loader else train_acc / len(train_loader.dataset)
+    return best_acc / val_item if val_loader else train_acc / train_item
 
 def tester(test_loader, model, device):
     pred = np.array([], dtype=np.int32)
