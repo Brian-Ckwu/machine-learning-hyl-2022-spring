@@ -44,3 +44,7 @@ class SampleClassifier(nn.Module):
         out = self.cnn(x)
         out = out.view(out.size()[0], -1)
         return self.fc(out)
+
+model_mapping = {
+    "SampleClassifier": SampleClassifier
+}
