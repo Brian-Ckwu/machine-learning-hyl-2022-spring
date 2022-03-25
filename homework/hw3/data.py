@@ -35,22 +35,6 @@ test_tfm = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-# However, it is also possible to use augmentation in the testing phase.
-# You may use train_tfm to produce a variety of images and then test using ensemble methods
-# train_tfm = transforms.Compose([
-#     # Resize the image into a fixed shape (height = width = 128)
-#     transforms.Resize((128, 128)),
-#     # TODO: add some transforms here.
-#     transforms.RandomAffine(degrees=45, translate=(0.2, 0.2), scale=(0.75, 1.25)),
-#     transforms.RandomHorizontalFlip(p=0.5),
-#     # transforms.RandomChoice(transforms=[
-#     #     transforms.RandomAdjustSharpness(sharpness_factor=0, p=0.5),
-#     #     transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5)
-#     # ]),
-#     # transforms.RandomVerticalFlip(p=0.5),
-#     transforms.ToTensor()
-# ])
-
 horizontal_tfm = transforms.Compose([
     transforms.Resize((128, 128)),
     transforms.RandomHorizontalFlip(p=0.5),
@@ -66,18 +50,6 @@ vertical_tfm = transforms.Compose([
 affine_tfm = transforms.Compose([
     transforms.Resize((128, 128)),
     transforms.RandomAffine(degrees=90, translate=(0.3, 0.3), scale=(0.75, 1.25)),
-    transforms.ToTensor()
-])
-
-blurred_tfm = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.RandomAdjustSharpness(sharpness_factor=0, p=0.5),
-    transforms.ToTensor()
-])
-
-sharp_tfm = transforms.Compose([
-    transforms.Resize((128, 128)),
-    transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.5),
     transforms.ToTensor()
 ])
 
@@ -99,14 +71,53 @@ crop_tfm = transforms.Compose([
     transforms.ToTensor()
 ])
 
+afhori_tfm = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.RandomAffine(degrees=90, translate=(0.3, 0.3), scale=(0.75, 1.25)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ToTensor()
+])
+
+afcrophori_tfm = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.RandomAffine(degrees=90, translate=(0.3, 0.3), scale=(0.75, 1.25)),
+    transforms.RandomResizedCrop(size=(128, 128), scale=(0.5, 1.0)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ToTensor()
+])
+
+AfCropHoriPersChoice_tfm = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.RandomChoice(
+        transforms=[
+            transforms.RandomAffine(degrees=90, translate=(0.3, 0.3), scale=(0.75, 1.25)),
+            transforms.RandomResizedCrop(size=(128, 128), scale=(0.5, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.8),
+            transforms.RandomPerspective(distortion_scale=0.5, p=0.8)
+        ]
+    ),
+    transforms.ToTensor()    
+])
+
+AfCropHoriPersChain_tfm = transforms.Compose([
+    transforms.Resize((128, 128)),
+    transforms.RandomAffine(degrees=90, translate=(0.3, 0.3), scale=(0.75, 1.25)),
+    transforms.RandomResizedCrop(size=(128, 128), scale=(0.5, 1.0)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomPerspective(distortion_scale=0.5, p=0.5),
+    transforms.ToTensor()    
+])
+
 tfm_mapping = {
     "horizontal": horizontal_tfm,
     "vertical": vertical_tfm,
     "affine": affine_tfm,
-    "blurred": blurred_tfm,
-    "sharp": sharp_tfm,
     "color": color_tfm,
     "perspective": perspective_tfm,
     "crop": crop_tfm,
+    "afhori": afhori_tfm,
+    "afcrophori_tfm": afcrophori_tfm,
+    "AfCropHoriPersChoice": AfCropHoriPersChoice_tfm,
+    "AfCropHoriPersChain": AfCropHoriPersChain_tfm,
     "test": test_tfm
 }
