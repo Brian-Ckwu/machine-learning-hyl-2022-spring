@@ -3,6 +3,7 @@
 """
 # Import necessary packages.
 import os
+import time
 import json
 import random
 import numpy as np
@@ -23,8 +24,8 @@ from torchvision.datasets import DatasetFolder, VisionDataset
 from tqdm.auto import tqdm
 
 # Custom codes
-from utils import same_seeds, evaluate, render_exp_name
-from data import FoodDataset, train_tfm, test_tfm
+from utils import same_seeds, evaluate, render_exp_name, load_config, parse_config_to_args
+from data import FoodDataset, test_tfm, tfm_mapping
 from model import model_mapping
 
 DATA_DIR = Path("./food11")
@@ -34,19 +35,23 @@ VALID = "validation"
 
 def trainer(args: Namespace):
     print(f"Training args:\n {args}")
+    start_time = time.time()
     # Set up for training
     same_seeds(args.myseed) # reproducibility
-    args.save_dir.mkdir(parents=True, exist_ok=True) # for saving the model & train record
-    
     # Data
-    train_set = FoodDataset(path=DATA_DIR / TRAIN, tfm=test_tfm)
+    train_tfm = tfm_mapping[args.tfm]
+    print(f"Using training transforms:\n{train_tfm}")
+    train_set = FoodDataset(path=DATA_DIR / TRAIN, tfm=train_tfm)
     valid_set = FoodDataset(path=DATA_DIR / VALID, tfm=test_tfm)
 
     train_loader = DataLoader(train_set, batch_size=args.bs, shuffle=True, pin_memory=True)
     valid_loader = DataLoader(valid_set, batch_size=args.bs, shuffle=True, pin_memory=True)  # TODO: check if shuffle=False leads to the same validation accuracy
     
     # Model, Loss, Optimizer, and Scheduler
-    model = model_mapping.get(args.model, None)().to(args.device)
+    model: nn.Module = model_mapping.get(args.model, None)().to(args.device)
+    if args.trained_model:
+        model.load_state_dict(state_dict=torch.load(args.model_dir / args.trained_model / "model.pth"))
+        print(f"Loaded previously trained model: {args.trained_model}")
     criterion = nn.CrossEntropyLoss(reduction="mean")
     optimizer = getattr(torch.optim, args.optimizer)(model.parameters(), lr=args.lr, weight_decay=args.wd)    
 
@@ -102,6 +107,9 @@ def trainer(args: Namespace):
         # write train record each epoch
         write_train_record(record, best_acc, save_dir=args.save_dir)
 
+    end_time = time.time()
+    train_minutes = (end_time - start_time) / 60
+    print(f"Total training time: {train_minutes:.2f} minutes")
     return record, best_acc
 
 def update_record(record: Dict[str, List], items: List[Tuple[str, float]]):
@@ -117,22 +125,18 @@ def write_train_record(record: Dict[str, list], best_acc: float, save_dir: Path)
     with open(save_dir / "best_acc.txt", mode="wt") as f:
         f.write(str(best_acc))
 
-def load_config(config_path: str = "./config.json") -> dict:
-    with open(config_path) as f:
-        config = json.load(f)
-    return config
-
-def parse_config_to_args(config: dict, exp_fields: List[str]) -> Namespace:
-    args = Namespace(**config)
-    args.model_dir = Path(args.model_dir)
-    args.exp_name = render_exp_name(args, fields=exp_fields)
-    args.save_dir = args.model_dir / args.exp_name
-    return args
+def save_config(config: dict, save_dir: Path) -> None:
+    with open(save_dir / "config.json", mode="wt") as f:
+        json.dump(config, f)
 
 if __name__ == "__main__":
+    # Configuration
     config = load_config(config_path="./config.json")
-    args = parse_config_to_args(config, exp_fields=["model", "optimizer", "lr", "wd", "bs", "nepochs"])
+    args = parse_config_to_args(config, exp_fields=["model", "optimizer", "lr", "wd", "bs", "nepochs", "tfm"])
+    args.save_dir.mkdir(parents=True, exist_ok=True) # for saving the model & train record
+    save_config(config, args.save_dir)
+    # Start training
     if "cuda" in args.device:
         assert torch.cuda.is_available()
     record, best_acc = trainer(args)
-    write_train_record(record, best_acc)
+    write_train_record(record, best_acc, args.save_dir)
