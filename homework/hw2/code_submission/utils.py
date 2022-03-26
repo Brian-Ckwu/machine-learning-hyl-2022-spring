@@ -126,20 +126,14 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
             
             # forward pass
             outputs = model(features)
-            if criterion == "crf":
-                loss = -model.calc_crf_prob(outputs, labels)
-            else:
-                loss = criterion(outputs, labels)
+            loss = criterion(outputs, labels)
             
             # backward pass
             optimizer.zero_grad() 
             loss.backward() 
             optimizer.step() 
             
-            if criterion == "crf":
-                train_pred = model.crf_decode(outputs)
-            else:
-                _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
+            _, train_pred = torch.max(outputs, 1) # get the index of the class with the highest probability
             train_acc += (train_pred.cpu().detach() == labels.cpu().detach()).sum().item()
             train_item += len(labels)
             train_loss += loss.cpu().detach().item()
@@ -153,16 +147,9 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
                     features = features.to(device)
                     labels = labels.to(device)
                     outputs = model(features)
-                    
-                    if criterion == "crf":
-                        loss = -model.calc_crf_prob(outputs, labels)
-                    else:
-                        loss = criterion(outputs, labels)
-                    
-                    if criterion == "crf":
-                        val_pred = model.crf_decode(outputs)
-                    else:
-                        _, val_pred = torch.max(outputs, 1) 
+                    loss = criterion(outputs, labels)
+                   
+                    _, val_pred = torch.max(outputs, 1) 
                     
                     val_acc += (val_pred.cpu() == labels.cpu()).detach().sum().item() # get the index of the class with the highest probability
                     val_item += len(labels)
@@ -192,7 +179,7 @@ def trainer(train_loader, val_loader, model, criterion, optimizer, config, devic
 
     # if not validating, save the last epoch
     if not val_loader:
-        torch.save(model.state_dict(), "./models/ax_results/{}.pth".format(config["model_name"]))
+        torch.save(model.state_dict(), "./models/{}.pth".format(config["model_name"]))
         print('saving model at last epoch')
     
     return best_acc / val_item if val_loader else train_acc / train_item

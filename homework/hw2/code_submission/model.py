@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import PackedSequence
-from torchcrf import CRF
 
 class BasicBlock(nn.Module):
     def __init__(self, input_dim, output_dim, dropout_p):
@@ -45,19 +44,8 @@ class RNNClassifier(nn.Module):
             nn.Dropout(classifier_dropout),
             nn.Linear(rnn_args["hidden_size"] * D, output_dim)
         )
-        self.crf = CRF(num_tags=output_dim, batch_first=True)
 
     def forward(self, x: PackedSequence):
         final_h = self.rnn(x)[0].data
         scores = self.classifier(final_h)
         return scores
-    
-    def calc_crf_prob(self, scores, labels):
-        scores = scores.unsqueeze(dim=0)
-        labels = labels.unsqueeze(dim=0)
-        prob = self.crf(scores, labels)
-        return prob
-    
-    def crf_decode(self, scores):
-        scores = scores.unsqueeze(dim=0)
-        return torch.LongTensor(self.crf.decode(scores)[0])

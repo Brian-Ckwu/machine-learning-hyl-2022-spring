@@ -19,7 +19,7 @@ with open("./lstm_config.json") as f:
     config = json.load(f)
 
 assert torch.cuda.is_available()
-device = "cuda:1"
+device = "cuda"
 
 same_seeds(config["seed"])
 
@@ -46,9 +46,6 @@ optimizer = getattr(torch.optim, config["optimizer"])(model.parameters(), **conf
 
 best_acc = trainer(train_loader, val_loader, model, criterion, optimizer, config, device)
 print(f"\n\nBest accuracy: {best_acc}\n")
-
-with open("./evaluations/{}.txt".format(config["model_name"]), mode="wt") as f:
-    f.write(str(best_acc))
 
 del train_set, val_set, train_loader, val_loader, model, optimizer
 gc.collect()
