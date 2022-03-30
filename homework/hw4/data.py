@@ -52,7 +52,30 @@ class VoxDataset(Dataset):
 	def get_speaker_number(self):
 		return self.speaker_num
 
-def get_dataloader(data_dir, train_ratio, batch_size):
+class InferenceDataset(Dataset):
+	def __init__(self, data_dir):
+		testdata_path = Path(data_dir) / "testdata.json"
+		metadata = json.loads(testdata_path.read_bytes())
+		self.data_dir = data_dir
+		self.data = metadata["utterances"]
+
+	def __len__(self):
+		return len(self.data)
+
+	def __getitem__(self, index):
+		utterance = self.data[index]
+		feat_path = utterance["feature_path"]
+		mel = torch.load(os.path.join(self.data_dir, feat_path))
+
+		return feat_path, mel
+
+def inference_collate_batch(batch):
+	"""Collate a batch of data."""
+	feat_paths, mels = zip(*batch)
+
+	return feat_paths, torch.stack(mels)
+
+def get_dataloader(data_dir, train_ratio, batch_size, num_workers: int = 4):
 	"""Generate dataloader"""
 	def collate_fn(batch):
 		# Process features within a batch.
@@ -74,7 +97,7 @@ def get_dataloader(data_dir, train_ratio, batch_size):
 		batch_size=batch_size,
 		shuffle=True,
 		pin_memory=True,
-		num_workers=4,
+		num_workers=num_workers,
 		collate_fn=collate_fn
 	)
 	valid_loader = DataLoader(
@@ -82,7 +105,7 @@ def get_dataloader(data_dir, train_ratio, batch_size):
 		batch_size=batch_size,
 		shuffle=False, # TODO: check if drop_last improves performance
 		pin_memory=True,
-		num_workers=4,
+		num_workers=num_workers,
 		collate_fn=collate_fn
 	)
 
