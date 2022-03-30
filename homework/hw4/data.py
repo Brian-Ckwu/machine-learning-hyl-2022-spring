@@ -1,9 +1,10 @@
 import os
 import json
-import torch
 import random
 from pathlib import Path
-from torch.utils.data import Dataset
+
+import torch
+from torch.utils.data import Dataset, DataLoader, random_split
 from torch.nn.utils.rnn import pad_sequence
  
  
@@ -58,3 +59,29 @@ class VoxDataset(Dataset):
 		mel = pad_sequence(mel, batch_first=True, padding_value=-20)    # pad log 10^(-20) which is very small value.
 		# mel: (batch size, length, 40)
 		return mel, torch.FloatTensor(speaker).long()
+
+def get_dataloader(data_dir, train_ratio, batch_size):
+	"""Generate dataloader"""
+	dataset = VoxDataset(data_dir)
+	speaker_num = dataset.get_speaker_number()
+	# Split dataset into training dataset and validation dataset
+	trainlen = int(train_ratio * len(dataset))
+	lengths = [trainlen, len(dataset) - trainlen]
+	trainset, validset = random_split(dataset, lengths)
+
+	train_loader = DataLoader(
+		trainset,
+		batch_size=batch_size,
+		shuffle=True,
+		pin_memory=True,
+		collate_fn=trainset.collate_fn,
+	)
+	valid_loader = DataLoader(
+		validset,
+		batch_size=batch_size,
+		shuffle=False, # TODO: check if drop_last improves performance
+		pin_memory=True,
+		collate_fn=trainset.collate_fn,
+	)
+
+	return train_loader, valid_loader, speaker_num
