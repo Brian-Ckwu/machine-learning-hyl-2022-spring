@@ -1,4 +1,5 @@
 import math
+import json
 import random
 from pathlib import Path
 from argparse import Namespace
@@ -62,6 +63,9 @@ def get_cosine_schedule_with_warmup(
 		)
 
 	return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+def load_config(config_path: Path = Path("./config.json")):
+    return json.loads(config_path.read_bytes())
 
 def render_exp_name(args: Namespace, hparams: List[str]=[
         "model", "din", "dfc", "nhead", "dropout", "nlayers",
