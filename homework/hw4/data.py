@@ -74,14 +74,16 @@ def get_dataloader(data_dir, train_ratio, batch_size):
 		batch_size=batch_size,
 		shuffle=True,
 		pin_memory=True,
-		collate_fn=collate_fn,
+		num_workers=4,
+		collate_fn=collate_fn
 	)
 	valid_loader = DataLoader(
 		validset,
 		batch_size=batch_size,
 		shuffle=False, # TODO: check if drop_last improves performance
 		pin_memory=True,
-		collate_fn=collate_fn,
+		num_workers=4,
+		collate_fn=collate_fn
 	)
 
 	return train_loader, valid_loader, speaker_num
