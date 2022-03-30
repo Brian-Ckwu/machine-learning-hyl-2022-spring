@@ -10,8 +10,12 @@ import torch.nn as nn
 from data import get_dataloader
 from model import SampleClassifier
 from utils import set_seed, get_cosine_schedule_with_warmup, load_config, render_exp_name
+from optim import optimize_hparams
 
-def trainer(args: Namespace, hparams: List[str]):
+def trainer(
+        args: Namespace,
+        hparams: List[str] = ["model", "din", "dfc", "nhead", "dropout", "nlayers", "optimizer", "lr", "bs"]
+    ):
     # Configs
     args.exp_name = render_exp_name(args, hparams)
     args.ckpt_dir = Path(args.model_dir) / args.exp_name
@@ -38,6 +42,7 @@ def trainer(args: Namespace, hparams: List[str]):
     print(f"[Info]: Finish creating model!")    
 
     # Optimization
+    stale = 0 # for early stopping
     best_acc = -1.0
     pbar = tqdm(total=args.valid_steps, ncols=0, desc="Train", unit=" step")
     train_log = {
@@ -90,10 +95,17 @@ def trainer(args: Namespace, hparams: List[str]):
 
             # keep the best model
             if valid_acc > best_acc:
+                stale = 0
                 best_acc = valid_acc
                 # Save the best model so far.
                 torch.save(model.state_dict(), args.ckpt_dir / "model.pth")
                 pbar.write(f"Step {step + 1}, best model saved. (accuracy={best_acc:.4f})")
+            else:
+                stale += 1
+                print(f"No improvement for {stale} epochs.")
+                if stale >= 10:
+                    print("Early stopping.")
+                    break
 
             pbar = tqdm(total=args.valid_steps, ncols=0, desc="Train", unit=" step")
 
@@ -135,9 +147,14 @@ def evaluate(loader, model, criterion, device) -> tuple:
 
 if __name__ == "__main__":
     args = Namespace(**load_config(Path("./config.json")))
-    trainer(args, hparams=[
-        "model", "din", "dfc", "nhead", "dropout", "nlayers",
-        "optimizer", "lr", "bs"
-    ])
+    best_hparams, best_perf = optimize_hparams(
+        name="speaker_cls",
+        trainer=trainer,
+        args=args,
+        hparams_config=json.loads(Path("./hparams.json").read_bytes()),
+        n_trials=50
+    )
+    print(f"The best hparams are:\n {best_hparams}")
+    print(f"The best performance is: {best_perf}")
 
 
