@@ -101,6 +101,10 @@ def trainer(args: Namespace, hparams: List[str]):
     # save best_acc & train_log
     (args.ckpt_dir / "best_acc.txt").write_text(str(best_acc))
     (args.ckpt_dir / "train_log.json").write_text(json.dumps(train_log))
+    # save config for testing
+    config_path = (args.ckpt_dir / "config.json")
+    args.ckpt_dir = str(args.ckpt_dir)
+    config_path.write_text(json.dumps(vars(args)))
     return best_acc, train_log
 
 def evaluate(loader, model, criterion, device) -> tuple:
