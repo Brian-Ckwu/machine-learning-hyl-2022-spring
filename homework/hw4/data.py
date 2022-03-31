@@ -9,7 +9,7 @@ from torch.nn.utils.rnn import pad_sequence
  
  
 class VoxDataset(Dataset):
-	def __init__(self, data_dir, segment_len=128):
+	def __init__(self, data_dir, segment_len: int = 128):
 		self.data_dir = data_dir
 		self.segment_len = segment_len
 	
@@ -42,7 +42,7 @@ class VoxDataset(Dataset):
 			# Randomly get the starting point of the segment.
 			start = random.randint(0, len(mel) - self.segment_len)
 			# Get a segment with "segment_len" frames.
-			mel = torch.FloatTensor(mel[start:start+self.segment_len])
+			mel = torch.FloatTensor(mel[start:start + self.segment_len])
 		else:
 			mel = torch.FloatTensor(mel)
 		# Turn the speaker id into long for computing loss later.
@@ -53,11 +53,16 @@ class VoxDataset(Dataset):
 		return self.speaker_num
 
 class InferenceDataset(Dataset):
-	def __init__(self, data_dir):
+	def __init__(self, data_dir, random: bool = False, segment_len: int = 128):
 		testdata_path = Path(data_dir) / "testdata.json"
 		metadata = json.loads(testdata_path.read_bytes())
 		self.data_dir = data_dir
 		self.data = metadata["utterances"]
+		self.random = random
+		self.segment_len = segment_len
+		# fixed values
+		self.mel_dim = 40
+		self.pad_value = -20
 
 	def __len__(self):
 		return len(self.data)
@@ -67,6 +72,14 @@ class InferenceDataset(Dataset):
 		feat_path = utterance["feature_path"]
 		mel = torch.load(os.path.join(self.data_dir, feat_path))
 
+		if self.random:
+			if len(mel) > self.segment_len:
+				start = random.randint(0, len(mel) - self.segment_len)
+				mel = torch.FloatTensor(mel[start: start + self.segment_len])
+			else:
+				padding = torch.ones(size=(self.segment_len - len(mel), self.mel_dim)) * self.pad_value
+				mel = torch.cat(tensors=(torch.FloatTensor(mel), padding), dim=0)
+
 		return feat_path, mel
 
 def inference_collate_batch(batch):
@@ -75,7 +88,7 @@ def inference_collate_batch(batch):
 
 	return feat_paths, torch.stack(mels)
 
-def get_dataloader(data_dir, train_ratio, batch_size, num_workers: int = 4):
+def get_dataloader(data_dir, segment_len, train_ratio, batch_size, num_workers: int = 4):
 	"""Generate dataloader"""
 	def collate_fn(batch):
 		# Process features within a batch.
@@ -85,7 +98,8 @@ def get_dataloader(data_dir, train_ratio, batch_size, num_workers: int = 4):
 		# mel: (batch size, length, 40)
 		return mel, torch.FloatTensor(speaker).long()
 
-	dataset = VoxDataset(data_dir)
+	dataset = VoxDataset(data_dir, segment_len=segment_len)
+	print(f"[Info]: Training instance shape = {dataset[0][0].shape}")
 	speaker_num = dataset.get_speaker_number()
 	# Split dataset into training dataset and validation dataset
 	trainlen = int(train_ratio * len(dataset))
