@@ -128,7 +128,7 @@ class SampleClassifierAttnPool(nn.Module):
 		pooled = torch.bmm(
 			attn_weights.transpose(1, 2),
 			encoded
-		).squeeze()
+		).squeeze(dim=1)
 		# out: (batch, n_spks)
 		out = self.pred_layer(pooled)
 		return out
