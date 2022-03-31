@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 from data import get_dataloader
-from model import SampleClassifier
+from model import model_mapping
 from utils import set_seed, get_cosine_schedule_with_warmup, load_config, render_exp_name
 from optim import optimize_hparams
 
@@ -27,6 +27,7 @@ def trainer(
     # Data
     train_loader, valid_loader, num_speakers = get_dataloader(
         data_dir=args.data_dir,
+        segment_len=args.segment_len,
         train_ratio=args.tratio,
         batch_size=args.bs,
         num_workers=args.nworkers
@@ -35,7 +36,7 @@ def trainer(
     print(f"[Info]: Finish loading data!")
 
     # Model, loss, optimizer, and scheduler
-    model = SampleClassifier(args, n_spks=num_speakers).to(args.device)
+    model = model_mapping[args.model](args, n_spks=num_speakers).to(args.device)
     criterion = nn.CrossEntropyLoss()
     optimizer = getattr(torch.optim, args.optimizer)(model.parameters(), lr=args.lr)
     scheduler = get_cosine_schedule_with_warmup(optimizer, args.warmup_steps, args.total_steps)
@@ -143,18 +144,23 @@ def evaluate(loader, model, criterion, device) -> tuple:
 
     valid_acc = total_correct / len(loader.dataset)
     valid_loss = total_loss / len(loader.dataset)
+    pbar.set_postfix(
+			loss=f"{valid_loss:.2f}",
+			accuracy=f"{valid_acc:.2f}",
+		)
     return valid_acc, valid_loss
 
 if __name__ == "__main__":
     args = Namespace(**load_config(Path("./config.json")))
-    best_hparams, best_perf = optimize_hparams(
-        name="speaker_cls",
-        trainer=trainer,
-        args=args,
-        hparams_config=json.loads(Path("./hparams.json").read_bytes()),
-        n_trials=50
-    )
-    print(f"The best hparams are:\n {best_hparams}")
-    print(f"The best performance is: {best_perf}")
+    trainer(args, hparams=["model", "din", "dfc", "nhead", "dropout", "nlayers", "optimizer", "lr", "bs", "segment_len"])
+    # best_hparams, best_perf = optimize_hparams(
+    #     name="speaker_cls",
+    #     trainer=trainer,
+    #     args=args,
+    #     hparams_config=json.loads(Path("./hparams.json").read_bytes()),
+    #     n_trials=50
+    # )
+    # print(f"The best hparams are:\n {best_hparams}")
+    # print(f"The best performance is: {best_perf}")
 
 
