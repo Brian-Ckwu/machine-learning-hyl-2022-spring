@@ -9,7 +9,7 @@ from torch.nn.utils.rnn import pad_sequence
  
  
 class VoxDataset(Dataset):
-	def __init__(self, data_dir, segment_len: int = 128):
+	def __init__(self, data_dir, segment_len: int = 384):
 		self.data_dir = data_dir
 		self.segment_len = segment_len
 	
@@ -38,7 +38,7 @@ class VoxDataset(Dataset):
 		mel = torch.load(os.path.join(self.data_dir, feat_path))
 
 		# Segmemt mel-spectrogram into "segment_len" frames.
-		if len(mel) > self.segment_len:
+		if (len(mel) > self.segment_len):
 			# Randomly get the starting point of the segment.
 			start = random.randint(0, len(mel) - self.segment_len)
 			# Get a segment with "segment_len" frames.
@@ -47,7 +47,7 @@ class VoxDataset(Dataset):
 			mel = torch.FloatTensor(mel)
 		# Turn the speaker id into long for computing loss later.
 		speaker = torch.FloatTensor([speaker]).long()
-		return mel, speaker
+		return (mel, len(mel), speaker)
  
 	def get_speaker_number(self):
 		return self.speaker_num
@@ -92,11 +92,11 @@ def get_dataloader(data_dir, segment_len, train_ratio, batch_size, num_workers: 
 	"""Generate dataloader"""
 	def collate_fn(batch):
 		# Process features within a batch.
-		mel, speaker = zip(*batch)
+		mel, lengths, speaker = zip(*batch)
 		# Because we train the model batch by batch, we need to pad the features in the same batch to make their lengths the same.
-		mel = pad_sequence(mel, batch_first=True, padding_value=-20) # pad log 10^(-20) which is very small value.
 		# mel: (batch size, length, 40)
-		return mel, torch.FloatTensor(speaker).long()
+		mel = pad_sequence(mel, batch_first=True, padding_value=-20) # pad log 10^(-20) which is very small value.
+		return (mel, torch.LongTensor(lengths), torch.FloatTensor(speaker).long())
 
 	dataset = VoxDataset(data_dir, segment_len=segment_len)
 	print(f"[Info]: Training instance shape = {dataset[0][0].shape}")
