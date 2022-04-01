@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from conformer import Conformer
+
 class SampleClassifier(nn.Module):
 	def __init__(self, args: Namespace, n_spks=600):
 		super().__init__()
@@ -133,8 +135,44 @@ class SampleClassifierAttnPool(nn.Module):
 		out = self.pred_layer(pooled)
 		return out
 
+class ConformerAttnPool(nn.Module):
+	def __init__(self, args: Namespace, n_spks=600):
+		super(ConformerAttnPool, self).__init__()
+		# Project dimension
+		MEL_DIM = 40
+		self.prenet = nn.Linear(MEL_DIM, args.din) # TODO: is this necessary?
+		# Conformer encoder
+		self.conformer = Conformer(
+			input_dim=args.din,
+			num_heads=args.nhead,
+			ffn_dim=args.dfc,
+			num_layers=args.nlayers,
+			depthwise_conv_kernel_size=args.kernelsize,
+			dropout=args.dropout
+		)
+		# Attention Pooling
+		self.attn = nn.Sequential(
+			nn.Linear(args.din, 1),
+			nn.Softmax(dim=1)
+		)
+		# Classifier
+		self.pred_layer = nn.Linear(args.din, n_spks)
+	
+	def forward(self, mels, lens):
+		for_conform = self.prenet(mels)
+		conformed, _lens = self.conformer(for_conform, lens)
+		assert torch.all(_lens == lens)
+		attn_weights = self.attn(conformed)
+		pooled = torch.bmm(
+			attn_weights.transpose(1, 2),
+			conformed
+		).squeeze(dim=1)
+		scores = self.pred_layer(pooled)
+		return scores
+
 model_mapping = {
 	"SampleClassifier": SampleClassifier,
 	"SampleClassifierOneFC": SampleClassifierOneFC,
-	"SampleClassifierAttnPool": SampleClassifierAttnPool
+	"SampleClassifierAttnPool": SampleClassifierAttnPool,
+	"ConformerAttnPool": ConformerAttnPool
 }
