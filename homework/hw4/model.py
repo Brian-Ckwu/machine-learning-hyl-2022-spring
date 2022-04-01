@@ -170,9 +170,41 @@ class ConformerAttnPool(nn.Module):
 		scores = self.pred_layer(pooled)
 		return scores
 
+class ConformerAttnPoolNoPrenet(nn.Module):
+	def __init__(self, args: Namespace, n_spks=600):
+		super(ConformerAttnPoolNoPrenet, self).__init__()
+		# Conformer encoder
+		self.conformer = Conformer(
+			input_dim=args.din,
+			num_heads=args.nhead,
+			ffn_dim=args.dfc,
+			num_layers=args.nlayers,
+			depthwise_conv_kernel_size=args.kernelsize,
+			dropout=args.dropout
+		)
+		# Attention Pooling
+		self.attn = nn.Sequential(
+			nn.Linear(args.din, 1),
+			nn.Softmax(dim=1)
+		)
+		# Classifier
+		self.pred_layer = nn.Linear(args.din, n_spks)
+	
+	def forward(self, mels, lens):
+		conformed, _lens = self.conformer(mels, lens)
+		assert torch.all(_lens == lens)
+		attn_weights = self.attn(conformed)
+		pooled = torch.bmm(
+			attn_weights.transpose(1, 2),
+			conformed
+		).squeeze(dim=1)
+		scores = self.pred_layer(pooled)
+		return scores
+
 model_mapping = {
 	"SampleClassifier": SampleClassifier,
 	"SampleClassifierOneFC": SampleClassifierOneFC,
 	"SampleClassifierAttnPool": SampleClassifierAttnPool,
-	"ConformerAttnPool": ConformerAttnPool
+	"ConformerAttnPool": ConformerAttnPool,
+	"ConformerAttnPoolNoPrenet": ConformerAttnPoolNoPrenet
 }
