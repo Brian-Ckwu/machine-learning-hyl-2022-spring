@@ -14,8 +14,7 @@ from utils import load_config
 
 def tester(args: Namespace):
 	"""Main function."""
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	print(f"[Info]: Use {device} now!")
+	print(f"[Info]: Use {args.device} now!")
 
 	mapping_path = Path(args.data_dir) / "mapping.json"
 	mapping = json.loads(mapping_path.read_bytes())
@@ -41,7 +40,12 @@ def tester(args: Namespace):
 	for feat_paths, mels in tqdm(dataloader):
 		with torch.no_grad():
 			mels = mels.to(args.device)
-			outs = model(mels)
+			mels_lens = [mels.shape[1]]
+			lens = torch.LongTensor(mels_lens).to(args.device)
+			if "Conformer" in model.__class__.__name__:
+				outs = model(mels, lens)
+			else:
+				outs = model(mels)
 			preds = outs.argmax(dim=-1).cpu().numpy()
 			for feat_path, pred in zip(feat_paths, preds):
 				results.append([feat_path, mapping["id2speaker"][str(pred)]])
