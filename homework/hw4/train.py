@@ -10,7 +10,6 @@ import torch.nn as nn
 from data import get_dataloader
 from model import model_mapping
 from utils import set_seed, get_cosine_schedule_with_warmup, load_config, render_exp_name
-from optim import optimize_hparams
 
 def trainer(
         args: Namespace,
@@ -38,7 +37,7 @@ def trainer(
     # Model, loss, optimizer, and scheduler
     model = model_mapping[args.model](args, n_spks=num_speakers).to(args.device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = getattr(torch.optim, args.optimizer)(model.parameters(), lr=args.lr)
+    optimizer = getattr(torch.optim, args.optimizer)(model.parameters(), lr=args.lr, betas=args.betas, eps=args.eps, weight_decay=args.wd)
     scheduler = get_cosine_schedule_with_warmup(optimizer, args.warmup_steps, args.total_steps)
     print(f"[Info]: Finish creating model!")    
 
@@ -60,11 +59,14 @@ def trainer(
             batch = next(train_iterator)
 
         # move to device
-        x, y = batch
-        x, y = x.to(args.device), y.to(args.device)
+        x, lens, y = batch
+        x, lens, y = x.to(args.device), lens.to(args.device), y.to(args.device)
 
         # forward
-        scores = model(x)
+        if "Conformer" in model.__class__.__name__:
+            scores = model(x, lens)
+        else:
+            scores = model(x)
         loss = criterion(scores, y)
 
         # back-prop
@@ -126,10 +128,13 @@ def evaluate(loader, model, criterion, device) -> tuple:
     total_loss = 0
 
     pbar = tqdm(total=len(loader.dataset), ncols=0, desc="Valid", unit=" uttr")
-    for x, y in loader:
-        x, y = x.to(device), y.to(device)
+    for x, lens, y in loader:
+        x, lens, y = x.to(device), lens.to(device), y.to(device)
         with torch.no_grad():
-            scores = model(x)
+            if "Conformer" in model.__class__.__name__:
+                scores = model(x, lens)
+            else:
+                scores = model(x)
             correct = (scores.argmax(dim=-1) == y).sum().detach().cpu().item()
             loss = criterion(scores, y)
 
@@ -152,15 +157,5 @@ def evaluate(loader, model, criterion, device) -> tuple:
 
 if __name__ == "__main__":
     args = Namespace(**load_config(Path("./config.json")))
-    trainer(args, hparams=["model", "din", "dfc", "nhead", "dropout", "nlayers", "optimizer", "lr", "bs", "segment_len"])
-    # best_hparams, best_perf = optimize_hparams(
-    #     name="speaker_cls",
-    #     trainer=trainer,
-    #     args=args,
-    #     hparams_config=json.loads(Path("./hparams.json").read_bytes()),
-    #     n_trials=50
-    # )
-    # print(f"The best hparams are:\n {best_hparams}")
-    # print(f"The best performance is: {best_perf}")
-
+    trainer(args, hparams=["model", "din", "dfc", "nhead", "kernelsize", "dropout", "nlayers", "optimizer", "lr", "bs", "segment_len", "eps", "wd"])
 
