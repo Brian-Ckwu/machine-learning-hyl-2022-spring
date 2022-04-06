@@ -229,3 +229,30 @@ def try_load_checkpoint(model, config, logger, optimizer=None, name=None):
         logger.info(f"loaded checkpoint {checkpath}: step={step} loss={stats['loss']} bleu={stats['bleu']}")
     else:
         logger.info(f"no checkpoints found at {checkpath}!")
+
+def generate_prediction(model, task, sequence_generator, config, split="test", outfile="./prediction.txt"):    
+    task.load_dataset(split=split, epoch=1)
+    itr = load_data_iterator(task, split, config.myseed, 1, config.max_tokens, config.num_workers).next_epoch_itr(shuffle=False)
+    
+    idxs = []
+    hyps = []
+
+    model.eval()
+    progress = tqdm(itr, desc=f"prediction")
+    with torch.no_grad():
+        for i, sample in enumerate(progress):
+            # validation loss
+            sample = utils.move_to_cuda(sample, device=config.device)
+
+            # do inference
+            s, h, r = inference_step(sample, model, config, sequence_generator, task)
+            
+            hyps.extend(h)
+            idxs.extend(list(sample['id']))
+            
+    # sort based on the order before preprocess
+    hyps = [x for _,x in sorted(zip(idxs,hyps))]
+    
+    with open(outfile, "w") as f:
+        for h in hyps:
+            f.write(h+"\n")
