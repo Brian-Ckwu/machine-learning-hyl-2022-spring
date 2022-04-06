@@ -26,6 +26,19 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+def log_info(logger, task, model, criterion, optimizer, config):
+    logger.info("task: {}".format(task.__class__.__name__))
+    logger.info("encoder: {}".format(model.encoder.__class__.__name__))
+    logger.info("decoder: {}".format(model.decoder.__class__.__name__))
+    logger.info("criterion: {}".format(criterion.__class__.__name__))
+    logger.info("optimizer: {}".format(optimizer.__class__.__name__))
+    logger.info(
+        "num. model params: {:,} (num. trained: {:,})".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+        )
+    )
+    logger.info(f"max tokens per batch = {config.max_tokens}, accumulate steps = {config.accum_steps}")
 
 def train_one_epoch(epoch_itr, model, task, criterion, optimizer, config, logger, accum_steps=1):
     itr = epoch_itr.next_epoch_itr(shuffle=True)
@@ -36,6 +49,8 @@ def train_one_epoch(epoch_itr, model, task, criterion, optimizer, config, logger
     
     model.train()
     progress = tqdm(itr, desc=f"train epoch {epoch_itr.epoch}", leave=False)
+    # TODO: save gnorms
+    gnorms = list()
     for samples in progress:
         model.zero_grad()
         accum_loss = 0
@@ -65,6 +80,7 @@ def train_one_epoch(epoch_itr, model, task, criterion, optimizer, config, logger
         scaler.unscale_(optimizer)
         optimizer.multiply_grads(1 / (sample_size or 1.0)) # (sample_size or 1.0) handles the case of a zero gradient
         gnorm = nn.utils.clip_grad_norm_(model.parameters(), config.clip_norm) # grad norm clipping prevents gradient exploding
+        gnorms.append(gnorm.detach().cpu().item())
         
         scaler.step(optimizer)
         scaler.update()
@@ -83,7 +99,7 @@ def train_one_epoch(epoch_itr, model, task, criterion, optimizer, config, logger
         
     loss_print = np.mean(stats["loss"])
     logger.info(f"training loss: {loss_print:.4f}")
-    return stats, gnorm
+    return stats, gnorms
 
 def decode(toks, dictionary, config):
     # convert from Tensor to human readable sentence
@@ -197,15 +213,11 @@ def validate_and_save(model, task, criterion, config, optimizer, epoch, sequence
         if getattr(validate_and_save, "best_bleu", 0) < bleu.score:
             validate_and_save.best_bleu = bleu.score
             torch.save(check, savedir/f"checkpoint_best.pt")
-            
-        del_file = savedir / f"checkpoint{epoch - config.keep_last_epochs}.pt"
-        if del_file.exists():
-            del_file.unlink()
     
     return stats
 
 def try_load_checkpoint(model, config, logger, optimizer=None, name=None):
-    name = name if name else "checkpoint_last.pt"
+    name = name if name else "checkpoint_best.pt"
     checkpath = Path(config.savedir)/name
     if checkpath.exists():
         check = torch.load(checkpath)
