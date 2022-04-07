@@ -32,8 +32,6 @@ def tester(config: Namespace):
         upsample_primary=1,
     )
     task = TranslationTask.setup_task(task_cfg)
-    task.load_dataset(split="train", epoch=1, combine=True) # combine if you have back-translation data.
-    task.load_dataset(split="valid", epoch=1)
 
     # Model
     arch_args = Namespace(**json.loads(Path(config.model_arch_path).read_bytes()))
@@ -42,7 +40,7 @@ def tester(config: Namespace):
 
     # Testing
     sequence_generator = task.build_generator([model], config)
-    generate_prediction(model, task, sequence_generator, config)
+    generate_prediction(model, task, sequence_generator, config, split=config.split)
 
 
 if __name__ == "__main__":
@@ -55,4 +53,5 @@ if __name__ == "__main__":
     config.ckpt_name = str(sys.argv[1])
 
     # Test
+    config.split = "test" # choose test or mono (for back-translation)
     tester(config)
