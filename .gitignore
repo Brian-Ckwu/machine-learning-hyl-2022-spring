@@ -1,6 +1,7 @@
 *.pyc
 *.ipynb
 *.csv
+*.pt
 *.pth
 *.json
 *.zip
@@ -8,3 +9,5 @@
 libriphone
 runs
 *.jpg
+DATA
+*.pdf

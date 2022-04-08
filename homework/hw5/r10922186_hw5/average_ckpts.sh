@@ -1,0 +1,1 @@
+python ./fairseq/scripts/average_checkpoints.py --inputs "${1}" --num-epoch-checkpoints "${2}" --output "${1}/avg_last_${2}_checkpoints.pt"
