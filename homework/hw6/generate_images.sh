@@ -1,0 +1,1 @@
+stylegan2_pytorch --results_dir './preds' --name 'GAN-64' --generate --num_generate 1000 --num_image_tiles 1
