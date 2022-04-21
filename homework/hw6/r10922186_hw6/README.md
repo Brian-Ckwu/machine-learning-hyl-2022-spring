@@ -8,7 +8,7 @@ Download the data (faces.zip) and unzip it. The 1000 images should be in the `./
 
 ## Install Simple StyleGan2 for Pytorch
 
-    conda install pytorch torchvision -c python
+    pip install stylegan2_pytorch
 
 ## Train the Model
 
