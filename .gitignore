@@ -11,3 +11,6 @@ runs
 *.jpg
 DATA
 *.pdf
+*.png
+fid
+*.tgz
