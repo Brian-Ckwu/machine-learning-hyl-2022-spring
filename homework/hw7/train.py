@@ -101,7 +101,9 @@ def trainer(args: Namespace):
                                 attention_mask=data[2].squeeze(dim=0).to(args.device))
                             # prediction is correct only if answer text exactly matches
                             valid_acc += evaluate(data, output, tokenizer) == valid_questions[i]["answer_text"]
-                        print(f"Validation | Epoch {epoch + 1} | Step {step} | acc = {valid_acc / len(valid_loader):.3f}")
+
+                        valid_acc /= len(valid_loader)
+                        print(f"Validation | Epoch {epoch + 1} | Step {step} | acc = {valid_acc:.3f}")
                     
                     # Save best model
                     if valid_acc > best_valid_acc:
