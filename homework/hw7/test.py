@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 import transformers
 from transformers import BertForQuestionAnswering, BertTokenizerFast
+from accelerate import Accelerator
 
 from data import read_data, QA_Dataset
 from utils import same_seeds, load_config, evaluate
@@ -15,6 +16,7 @@ transformers.logging.set_verbosity_error()
 
 def make_pred_file(args: Namespace):
     same_seeds(args.seed)
+    accelerator = Accelerator(device_placement=False, fp16=args.fp16)
 
     # Data
     test_questions, test_paragraphs = read_data(args.test_path)
@@ -28,7 +30,8 @@ def make_pred_file(args: Namespace):
 
     # Model
     model = BertForQuestionAnswering.from_pretrained(args.model_save_dir, local_files_only=True).to(args.device)
-    
+    model = accelerator.prepare(model)
+
     # Make Prediction
     print("Making prediction...")
     result = list()
