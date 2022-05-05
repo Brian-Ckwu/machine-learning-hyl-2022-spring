@@ -1,4 +1,6 @@
 import json
+import random
+
 import torch
 from torch.utils.data import Dataset
 
@@ -39,8 +41,10 @@ class QA_Dataset(Dataset):
             answer_end_token = tokenized_paragraph.char_to_token(question["answer_end"])
 
             # A single window is obtained by slicing the portion of paragraph containing the answer
-            mid = (answer_start_token + answer_end_token) // 2
-            paragraph_start = max(0, min(mid - self.max_paragraph_len // 2, len(tokenized_paragraph) - self.max_paragraph_len))
+            # mid = (answer_start_token + answer_end_token) // 2 # TODO: random offsets
+            # mid_start = mid - self.max_paragraph_len // 2
+            rand_start = answer_end_token - random.randint(answer_end_token - answer_start_token, self.max_paragraph_len)
+            paragraph_start = max(0, min(rand_start, len(tokenized_paragraph) - self.max_paragraph_len))
             paragraph_end = paragraph_start + self.max_paragraph_len
             
             # Slice question/paragraph and add special tokens (101: CLS, 102: SEP)
