@@ -51,11 +51,12 @@ def trainer(args: Namespace):
     # Optimization
     total_train_steps = int(len(train_loader) / args.grad_accum_steps * args.nepochs)
     warmup_steps = int(total_train_steps * args.warmup_ratio)
-    scheduler = transformers.get_linear_schedule_with_warmup(
-        optimizer=optimizer, 
-        num_training_steps=total_train_steps,
-        num_warmup_steps=warmup_steps
-    )
+    if args.scheduler:
+        scheduler = transformers.get_linear_schedule_with_warmup(
+            optimizer=optimizer, 
+            num_training_steps=total_train_steps,
+            num_warmup_steps=warmup_steps
+        )
     model, optimizer, train_loader = accelerator.prepare(model, optimizer, train_loader)
     model.train()
     print(f"Start Training with Accelerator and Scheduler. Total training steps = {total_train_steps}; warmup steps = {warmup_steps}")
@@ -86,9 +87,10 @@ def trainer(args: Namespace):
             # train_acc += ((start_index == data[3]) & (end_index == data[4])).float().mean()
             # train_loss += loss
             
-            if (loader_idx % args.grad_accum_steps == args.grad_accum_steps - 1) or (step == len(train_loader) - 1):
+            if (loader_idx % args.grad_accum_steps == args.grad_accum_steps - 1) or (loader_idx == len(train_loader) - 1):
                 optimizer.step()
-                scheduler.step()
+                if args.scheduler:
+                    scheduler.step()
                 optimizer.zero_grad()
                 step += 1
                 # TODO: log train loss
@@ -96,7 +98,7 @@ def trainer(args: Namespace):
             ##### TODO: Apply linear learning rate decay #####
 
                 # Print validation accuracy over past logging step
-                if step % args.logsteps == 0:
+                if (step % args.logsteps == 0) or (loader_idx == len(train_loader) - 1):
                     # Evaluation
                     print("Evaluating Validation Set ...")
                     model.eval()
