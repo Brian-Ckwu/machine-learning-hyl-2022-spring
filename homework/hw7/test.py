@@ -44,7 +44,7 @@ def make_pred_file(args: Namespace):
         for data in tqdm(test_loader):
             output = model(input_ids=data[0].squeeze(dim=0).to(args.device), token_type_ids=data[1].squeeze(dim=0).to(args.device),
                         attention_mask=data[2].squeeze(dim=0).to(args.device))
-            result.append(evaluate(data, output, tokenizer, args.max_ans_length))
+            result.append(evaluate(data, output, tokenizer, args.max_ans_length, args.n_best))
 
     print("Saving prediction...")
     pred_path = Path(args.model_save_dir) / "prediction.csv"

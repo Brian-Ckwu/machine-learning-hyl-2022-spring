@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import transformers
-from transformers import AdamW, BertForQuestionAnswering, BertTokenizerFast
+from transformers import AdamW, AutoTokenizer, AutoModelForQuestionAnswering
 from accelerate import Accelerator
 
 from data import read_data, QA_Dataset
@@ -26,7 +26,7 @@ def trainer(args: Namespace):
     print("Data loaded.")
 
     # tokenize
-    tokenizer = BertTokenizerFast.from_pretrained(args.encoder)
+    tokenizer = AutoTokenizer.from_pretrained(args.encoder, use_fast=True)
     train_questions_tokenized = tokenizer([train_question["question_text"] for train_question in train_questions], add_special_tokens=False)
     valid_questions_tokenized = tokenizer([valid_question["question_text"] for valid_question in valid_questions], add_special_tokens=False)
     train_paragraphs_tokenized = tokenizer(train_paragraphs, add_special_tokens=False)
@@ -43,7 +43,7 @@ def trainer(args: Namespace):
     print("Dataset & Dataloader constructed.")
 
     # Model
-    model = BertForQuestionAnswering.from_pretrained(args.encoder).to(args.device)
+    model = AutoModelForQuestionAnswering.from_pretrained(args.encoder).to(args.device)
     optimizer = AdamW(model.parameters(), lr=args.lr)
     accelerator = Accelerator(device_placement=False, fp16=args.fp16)
     print("Model prepraed.")
@@ -108,7 +108,7 @@ def trainer(args: Namespace):
                             output = model(input_ids=data[0].squeeze(dim=0).to(args.device), token_type_ids=data[1].squeeze(dim=0).to(args.device),
                                 attention_mask=data[2].squeeze(dim=0).to(args.device))
                             # prediction is correct only if answer text exactly matches
-                            valid_acc += evaluate(data, output, tokenizer) == valid_questions[i]["answer_text"]
+                            valid_acc += evaluate(data, output, tokenizer, args.max_ans_length, args.n_best) == valid_questions[i]["answer_text"]
                         valid_acc /= len(valid_loader)
                         print(f"Validation | Epoch {epoch + 1} | Step {step} | acc = {valid_acc:.3f}")
                     

@@ -44,7 +44,7 @@ def validate(args: Namespace):
             output = model(input_ids=data[0].squeeze(dim=0).to(args.device), token_type_ids=data[1].squeeze(dim=0).to(args.device),
                 attention_mask=data[2].squeeze(dim=0).to(args.device))
             # prediction is correct only if answer text exactly matches
-            ncorrect += evaluate(data, output, tokenizer, args.max_ans_length) == valid_questions[i]["answer_text"]
+            ncorrect += evaluate(data, output, tokenizer, args.max_ans_length, args.n_best) == valid_questions[i]["answer_text"]
     
     valid_acc = ncorrect / len(valid_loader)
     return valid_acc
