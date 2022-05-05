@@ -1,14 +1,11 @@
-import json
-import random
 from tqdm.auto import tqdm
 from argparse import Namespace
 
-import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset 
+from torch.utils.data import DataLoader
 
 import transformers
-from transformers import AdamW, BertForQuestionAnswering, BertTokenizerFast
+from transformers import BertForQuestionAnswering, BertTokenizerFast
 
 from data import read_data, QA_Dataset
 from utils import same_seeds, load_config, evaluate
