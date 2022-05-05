@@ -1,5 +1,6 @@
 import json
 import random
+from typing import Iterable
 
 import torch
 from torch.utils.data import Dataset
@@ -90,3 +91,16 @@ class QA_Dataset(Dataset):
         attention_mask = [1] * (len(input_ids_question) + len(input_ids_paragraph)) + [0] * padding_len
         
         return input_ids, token_type_ids, attention_mask
+
+def split_by_div(data: Iterable, fold: int, remainder: int, mode: str) -> list:
+    data_l = list()
+    for i, item in enumerate(data):
+        if mode == "train":
+            if i % fold != remainder:
+                data_l.append(item)
+        elif mode == "valid":
+            if i % fold == remainder:
+                data_l.append(item)
+        else:
+            raise ValueError("mode should be either train or valid")
+    return data_l
