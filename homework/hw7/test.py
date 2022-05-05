@@ -20,17 +20,21 @@ def make_pred_file(args: Namespace):
 
     # Data
     test_questions, test_paragraphs = read_data(args.test_path)
-    tokenizer = BertTokenizerFast.from_pretrained(args.encoder)
+    print("Data loaded.")
 
+    tokenizer = BertTokenizerFast.from_pretrained(args.encoder)
     test_questions_tokenized = tokenizer([test_question["question_text"] for test_question in test_questions], add_special_tokens=False)
     test_paragraphs_tokenized = tokenizer(test_paragraphs, add_special_tokens=False)
+    print("Data tokenized.")
 
     test_set = QA_Dataset("test", test_questions, test_questions_tokenized, test_paragraphs_tokenized)
     test_loader = DataLoader(test_set, batch_size=1, shuffle=False, pin_memory=True)
+    print("Dataset & Dataloader constructed.")
 
     # Model
     model = BertForQuestionAnswering.from_pretrained(args.model_save_dir, local_files_only=True).to(args.device)
     model = accelerator.prepare(model)
+    print("Model loded.")
 
     # Make Prediction
     print("Making prediction...")
@@ -40,11 +44,11 @@ def make_pred_file(args: Namespace):
         for data in tqdm(test_loader):
             output = model(input_ids=data[0].squeeze(dim=0).to(args.device), token_type_ids=data[1].squeeze(dim=0).to(args.device),
                         attention_mask=data[2].squeeze(dim=0).to(args.device))
-            result.append(evaluate(data, output, tokenizer))
+            result.append(evaluate(data, output, tokenizer, args.max_ans_length))
 
     print("Saving prediction...")
     pred_path = Path(args.model_save_dir) / "prediction.csv"
-    with open(pred_path, 'w') as f:	
+    with open(pred_path, 'w', encoding="utf-8") as f:	
         f.write("ID,Answer\n")
         for i, test_question in enumerate(test_questions):
             # Replace commas in answers with empty strings (since csv is separated by comma)
