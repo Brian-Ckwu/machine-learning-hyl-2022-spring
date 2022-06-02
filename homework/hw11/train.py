@@ -63,7 +63,7 @@ def main(args: Namespace):
         domain_classifier.train()
 
         # TODO: adaptive lambda
-        lamb = (tanh(torch.tensor(epoch / 500)) * 2).cpu().item()
+        lamb = (tanh(torch.tensor(epoch / 500)) * args.max_lambda).cpu().item()
 
         for i, ((source_data, source_labels), (target_data, _)) in enumerate(zip(source_dataloader, target_dataloader)):
             # move to device
