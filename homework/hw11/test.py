@@ -26,7 +26,7 @@ def main(args: Namespace):
     label_predictor.eval()
     feature_extractor.eval()
     for test_data, _ in tqdm(test_dataloader):
-        test_data = test_data.cuda()
+        test_data = test_data.to(args.device)
 
         class_logits = label_predictor(feature_extractor(test_data))
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     config = load_json("./config.json")
     args = Namespace(**config)
 
-    # for epoch in [str(i * 250) for i in range(1, 11)]:
-    #     args.ckpt_epoch = epoch
-    print(f"Predicting from model checkpoint at {args.save_dir}/{args.ckpt_epoch}...")
-    main(args)
+    for epoch in [str(i * 250) for i in range(1, 11)]:
+        args.ckpt_epoch = epoch
+        print(f"Predicting from model checkpoint at {args.save_dir}/{args.ckpt_epoch}...")
+        main(args)
