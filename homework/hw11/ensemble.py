@@ -18,15 +18,14 @@ def main(args: Namespace):
     # Models
     feature_extractors = list()
     label_predictors = list()
-    for epoch in args.ensemble_epochs:
-        args.ckpt_epoch = epoch
-        print(f"Loading model checkpoint at epoch {args.ckpt_epoch}")
+    for ensemble_dir in args.ensemble_dirs:
+        print(f"Loading model checkpoint at {ensemble_dir}")
 
         feature_extractor = FeatureExtractor().to(args.device)
         label_predictor = LabelPredictor().to(args.device)    
 
-        label_predictor.load_state_dict(torch.load(f"{args.save_dir}/{args.ckpt_epoch}/label_predictor.pth"))
-        feature_extractor.load_state_dict(torch.load(f"{args.save_dir}/{args.ckpt_epoch}/feature_extractor.pth"))
+        label_predictor.load_state_dict(torch.load(f"{ensemble_dir}/label_predictor.pth"))
+        feature_extractor.load_state_dict(torch.load(f"{ensemble_dir}/feature_extractor.pth"))
         
         label_predictors.append(label_predictor)
         feature_extractors.append(feature_extractor)
@@ -51,11 +50,11 @@ def main(args: Namespace):
 
     # Generate your submission
     df = pd.DataFrame({'id': np.arange(0,len(result)), 'label': result})
-    df.to_csv(f"{args.save_dir}/ensemble/prediction.csv", index=False)
+    df.to_csv(args.ensemble_save_path, index=False)
 
 if __name__ == "__main__":
     config = load_json("./config.json")
     args = Namespace(**config)
 
-    print(f"Predicting from ensemble model checkpoints {args.ensemble_epochs}...")
+    print(f"Predicting from ensemble model checkpoints {args.ensemble_dirs}...")
     main(args)
