@@ -3,8 +3,6 @@ import random
 from pathlib import Path
 from argparse import Namespace
 
-import matplotlib.pyplot as plt
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -19,6 +17,38 @@ from model import ActorCritic
 from utils import Memory, load_json, fix, ft, calc_cum_rewards
 
 import wandb
+
+def evaluate(args: Namespace, agent: ActorCritic):
+    # Env
+    env = gym.make("LunarLander-v2")
+    fix(env, args.seed)
+    print("Env set.")
+
+    agent.eval()
+    NUM_OF_TEST = 5 # Do not revise this !!!
+    test_total_reward = []
+    action_list = []
+    for _ in range(NUM_OF_TEST):
+        actions = []
+        state = env.reset()
+
+        total_reward = 0
+
+        done = False
+        while not done:
+            _, action, _ = agent(ft(state))
+            actions.append(action)
+            state, reward, done, _ = env.step(action)
+
+            total_reward += reward
+            
+        print(total_reward)
+        test_total_reward.append(total_reward)
+
+        action_list.append(actions) # save the result of testing 
+
+    print(f"===== Average total reward: {np.mean(test_total_reward)} =====")
+    return float(np.mean(test_total_reward)), action_list
 
 def main(args: Namespace):
     # Config
@@ -48,6 +78,7 @@ def main(args: Namespace):
     running_total_rewards, running_final_rewards = list(), list()
     grad_norms = list()
     best_running_reward = -1000
+    best_test_reward = -1000
 
     values, cum_rewards, log_probs = [torch.FloatTensor()] * 3
 
@@ -77,7 +108,7 @@ def main(args: Namespace):
         # prepare values for calculating loss
         if args.normalize:
             rewards = np.array(memory.rewards)
-            rewards = (rewards - rewards.mean()) / rewards.std()
+            rewards = (rewards - rewards.mean()) / (rewards.std() + args.std_eps)
         else:
             rewards = memory.rewards
         values = torch.cat(tensors=(values, torch.cat(memory.values, dim=0)))
@@ -113,6 +144,14 @@ def main(args: Namespace):
             torch.save(obj=agent.state_dict(), f=save_path / "best_model.pth")
             (save_path / "best_running_reward.txt").write_text(str(best_running_reward))
             wandb.log({"best_running_reward": best_running_reward}, step=episode)
+        
+        if args.evaluate_during_training:
+            test_avg_reward, action_list = evaluate(args, agent)
+            if test_avg_reward > best_test_reward:
+                best_test_reward = test_avg_reward
+                torch.save(obj=agent.state_dict(), f=save_path / "best_test_model.pth") # save model
+                np.save(f"./{args.save_dir}/{args.exp_name}/action_list-{int(test_avg_reward)}.npy", np.array(action_list)) # save action list
+                wandb.log({"best_test_reward": best_test_reward})
 
         # clear memory
         memory.clear()
