@@ -22,7 +22,7 @@ def evaluate(args: Namespace, agent: ActorCritic):
     # Env
     env = gym.make("LunarLander-v2")
     fix(env, args.seed)
-    print("Env set.")
+    # print("Env set.")
 
     agent.eval()
     NUM_OF_TEST = 5 # Do not revise this !!!
@@ -42,12 +42,12 @@ def evaluate(args: Namespace, agent: ActorCritic):
 
             total_reward += reward
             
-        print(total_reward)
+        # print(total_reward)
         test_total_reward.append(total_reward)
 
         action_list.append(actions) # save the result of testing 
 
-    print(f"===== Average total reward: {np.mean(test_total_reward)} =====")
+    # print(f"===== Average total reward: {np.mean(test_total_reward)} =====")
     return float(np.mean(test_total_reward)), action_list
 
 def main(args: Namespace):
